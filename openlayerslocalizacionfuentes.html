@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+<meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximumscale=1.0 , shrink-to-fit=no, user-scalable=no" />
+<meta name="robots" content="index,follow" />
+<meta name="description" content="Mapa interactivo para visualizar las fuentes y manantiales de agua en España" />
+<meta name="keywords"
+    content="mapa, fuentes, agua, potable, manantiales, rutas, MTB, BTT, Madrid, Prug, sendas verdes, bici, bicicleta, montaña, ciclismo, tracks" />
+<meta name="author" content="Nano Flojo" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Fuentes">
+<meta name="apple-mobile-web-app-title" content="Fuentes">
+<meta name="theme-color" content="#969696">
+<meta name="msapplication-navbutton-color" content="#969696">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="msapplication-starturl" content="/index.html">
+
+<head>
+    <title>Fuentes de agua en España</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.4.0/ol.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ol@v10.4.0/dist/ol.js"></script>
+    <!--LayerSwitcher-->
+    <link rel="stylesheet" href="https://unpkg.com/ol-layerswitcher@4.1.2/dist/ol-layerswitcher.css" />
+    <script src="https://unpkg.com/ol-layerswitcher@4.1.2"></script>
+    <!--Control Geocoder-->
+    <link href="https://cdn.jsdelivr.net/npm/ol-geocoder/dist/ol-geocoder.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/ol-geocoder/dist/ol-geocoder.js"></script>
+
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            bottom: 0;
+        }
+
+        .ol-rotate {
+            top: 10em;
+        }
+
+        #map .ol-zoom .ol-zoom-out {
+            margin-top: 204px;
+        }
+
+        #map .ol-zoomslider {
+            background-color: transparent;
+            top: 2.3em;
+        }
+
+        #map .ol-touch .ol-zoom .ol-zoom-out {
+            margin-top: 212px;
+        }
+
+        #map .ol-touch .ol-zoomslider {
+            top: 2.75em;
+        }
+
+        #map .ol-zoom-in.ol-has-tooltip:hover [role=tooltip],
+        #map .ol-zoom-in.ol-has-tooltip:focus [role=tooltip] {
+            top: 3px;
+        }
+
+        #map .ol-zoom-out.ol-has-tooltip:hover [role=tooltip],
+        #map .ol-zoom-out.ol-has-tooltip:focus [role=tooltip] {
+            top: 232px;
+        }
+
+        .ol-scale-line {
+            margin-left: 2.5em;
+            bottom: 0.6em;
+        }
+
+        .ol-mouse-position {
+            position: absolute;
+            top: 0.5em;
+            margin-right: 3em;
+            color: #000000;
+            background-color: rgba(255, 255, 255, 0.5);
+            top: 0.5em;
+            margin-right: 3em;
+            border: solid 3px rgba(173, 217, 239, 0.7);
+            font-size: 12px;
+        }
+
+        .ol-geocoder.gcd-gl-container {
+            top: 270px;
+        }
+
+        .ol-geocoder .gcd-gl-control {
+            height: 25px;
+            width: 25px
+        }
+
+        .ol-geocoder .gcd-gl-expanded {
+            height: 2em;
+            width: 15.625em
+        }
+
+        .ol-geocoder .gcd-gl-btn {
+            height: 25px;
+            width: 25px
+        }
+
+        .posicion-actual {
+            top: 300px;
+            left: .5em;
+        }
+
+        .ol-touch .posicion-actual {
+            top: 320px;
+            left: .5em;
+        }
+
+        .ol-popup {
+            position: absolute;
+            min-width: 180px;
+            background-color: white;
+            -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
+            filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            bottom: 12px;
+            left: -50px;
+        }
+
+        .ol-popup:after,
+        .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 2px;
+            right: 8px;
+        }
+
+        .ol-popup-closer:after {
+            content: "✖";
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="info">&nbsp;</div>
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
+    <script>
+        // Estilo del vector drag and drop
+        var defaultStyle = {
+        'Point': new ol.style.Style({
+          image: new ol.style.Icon ({src: 'http://mapamtbmadrid.x10host.com/MapaRutasMTB/Iconos/Red_flag_OK_24.png'})
+        }),
+        'MultiLineString': new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: '#FF8B01',
+            width: 3
+          })
+        }),
+      };
+
+      var styleFunction = function(feature, resolution) {
+        var featureStyleFunction = feature.getStyleFunction();
+        if (featureStyleFunction) {
+          return featureStyleFunction.call(feature, resolution);
+        } else {
+          return defaultStyle[feature.getGeometry().getType()];
+        }
+      };
+
+
+    // Importar las clases necesarias para Drag and Drop
+    const VectorSource = ol.source.Vector;
+    const VectorImageLayer = ol.layer.VectorImage;
+
+    const dragAndDropInteraction = new ol.interaction.DragAndDrop({
+      sourceProjections: ['EPSG:4326', 'EPSG:3857'],
+      formatConstructors: [
+        ol.format.GeoJSON,
+        ol.format.GML3,
+        ol.format.KML, 
+        ol.format.WFS,
+        ol.format.WKT,
+        ol.format.GPX,
+        ol.format.OSMXML,
+      ],
+    });
+
+        //Visualización PNOA wms
+        var projection_PNOA = ol.proj.get('EPSG:4326');
+        var projectionExtent_PNOA = projection_PNOA.getExtent();
+        var size_PNOA = ol.extent.getWidth(projectionExtent_PNOA) / 512;
+        var resolutions_PNOA = new Array(18);
+        var matrixIds_PNOA = new Array(18);
+        for (var z = 0; z < 18; ++z) {
+            resolutions_PNOA[z] = size_PNOA / Math.pow(2, z);
+            matrixIds_PNOA[z] = "EPSG:4326:" + z;
+        }
+
+        // Creamos el estilo del cluster agrupación fuentes
+        var styleCache = {};
+        function getStyle(feature, resolution) {
+            var size = feature.get('features').length;
+            var style = styleCache[size];
+            if (!style) {
+                var color = size > 50 ? "0, 174, 255" : size > 25 ? "27, 189, 255" : size > 16 ? "0, 200, 255" : size > 8 ? "0, 210, 255" : size > 1 ? "0, 220, 255" : "0, 90, 255";
+                var radius = Math.max(6, Math.min(size * 0.75, 40));
+
+                style = styleCache[size] = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: radius,
+                        stroke: new ol.style.Stroke({
+                            color: "rgba(" + color + ",0.5)",
+                            width: 5,
+
+                        }),
+                        fill: new ol.style.Fill({
+                            color: "rgba(" + color + ",0.5)"
+                        })
+                    }),
+
+                    text: new ol.style.Text({
+                        text: size.toString(),
+                        fill: new ol.style.Fill({
+                            color: '#fff'
+                        })
+                    })
+                });
+            }
+            return style;
+        };
+
+        // Configuramos un vector para leer los datos Geojson	
+        var fuentes = new ol.source.Vector({
+            url: "https://gist.githubusercontent.com/nanoflojo/c8f570b92b4997c55c8c2e80de6d1bb3/raw/da211f8f16a3d2fa21d6c6efa34a4bf6079d6c2e/FuentesTODO.json",
+            format: new ol.format.GeoJSON(),
+            style: (styleCache /*style_point*/)
+        });
+        // Se crea una capa Vector para visualizar los datos GeoJson.
+        var vectorLayer = new ol.layer.Vector({
+            source: fuentes,
+        });
+
+        // El Cluster source se configura con otro vector
+        var clusterSource = new ol.source.Cluster({
+            source: fuentes,
+            distance: 80
+        });
+
+        // Creamos la capa Vector del Cluster con su estilo correspondiente
+        var clusterLayer = new ol.layer.Vector({
+            source: clusterSource,
+            style: getStyle,
+        });
+
+        //constructor para el control de ubicación
+        class PosicionActual extends ol.control.Control {
+            constructor() {
+
+                const boton = document.createElement('button');
+                boton.innerHTML = 'L';
+
+                const contenedor = document.createElement('div');
+                contenedor.className = 'posicion-actual ol-control';
+                contenedor.appendChild(boton);
+                super({
+                    element: contenedor,
+                })
+
+                boton.addEventListener('click', this.ubicar.bind(this));
+            }
+            ubicar() {
+                geolocation.setTracking(true);
+            }
+        }
+
+        // Creación del mapa, la vista, las capas, añadiendo el cluster Geojson de las fuentes y el control de ubicación
+        var map = new ol.Map({
+            layers: [
+                new ol.layer.Group({
+                    title: 'Otros mapas',
+                    visible: true,
+                    layers: [
+                        new ol.layer.Tile({
+                            title: 'Esri Topo',
+                            opacity: 1.000000,
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Tiles © <a target="_blank" href="https://services.arcgisonline.com/ArcGIS/' +
+                                    'rest/services/World_Topo_Map/MapServer">ArcGIS</a> Powered by <a target="_blank" href="https://www.esri.com/es-es/home/">ESRI</a>',
+                                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
+                            })
+                        }),
+                        new ol.layer.Tile({
+                            title: 'Esri Streets',
+                            opacity: 1.000000,
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Tiles © <a target="_blank" href="https://www.esri.com/es-es/arcgis/products/arcgis-online/overview">ArcGIS</a> Powered by <a target="_blank" href="https://www.esri.com/es-es/home/">ESRI</a>',
+                                url: 'https://server.arcgisonline.com/ArcGIS/rest/services/' +
+                                    'World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+                            })
+                        }),
+                        new ol.layer.Tile({
+                            'title': 'OpenTopoMap',
+                            'type': 'base',
+                            'visible': 'false',
+                            'opacity': 1.000000,
+                            source: new ol.source.XYZ({
+                                attributions: [
+                                    '<a target="_blank" href="https://openlayers.org/">OpenLayers</a>  ©  <a target="_blank" href="https://opentopomap.org/#map=5/49.000/10.000">OpenTopoMap</a> CC-BY-SA',
+                                    ol.source.OSM.ATTRIBUTION
+                                ],
+                                url: 'http://c.tile.opentopomap.org/{z}/{x}/{y}.png'
+                            })
+                        }),
+                        new ol.layer.Tile({
+                            title: 'Mapa transporte público',
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: [
+                                    'CC-BY-SA © <a target="_blank" href="https://memomaps.de/en/homepage/">MeMoMaps</a>',
+                                    ol.source.OSM.ATTRIBUTION
+                                ],
+                                url: 'http://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png'
+                            })
+                        }),
+                        new ol.layer.Group({
+                            title: 'Callejero IGN',
+                            type: 'base',
+                            combine: true,
+                            visible: false,
+                            layers: [
+                                new ol.layer.Tile({
+                                    source: new ol.source.TileWMS(({
+                                        preload: 4,
+                                        url: "http://www.ign.es/wms-inspire/mapa-raster",
+                                        attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Teselas cartográficas cedidas por © <a target="_blank" href="https://www.ign.es/web/ign/portal">Instituto Geográfico Nacional de España</a>',
+                                        params: {
+                                            "LAYERS": "Fondo",
+                                            "TILED": "true",
+                                            "VERSION": "1.3.0"
+                                        },
+                                    })),
+                                    opacity: 1.000000,
+                                }),
+                                new ol.layer.Tile({
+                                    source: new ol.source.TileWMS(({
+                                        url: "http://www.ign.es/wms-inspire/ign-base",
+                                        attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> - CC BY 4.0 <a href="http://www.scne.es/">SCNE</a>',
+                                        params: {
+                                            "LAYERS": "IGNBaseTodo-nofondo",
+                                            "TILED": "true",
+                                            "VERSION": "1.0.0"
+                                        },
+                                    })),
+                                    opacity: 1.000000,
+                                }),
+                            ]
+                        }),
+                        new ol.layer.Tile({
+                            title: 'OpenCycleMap',
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: [
+                                    '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> © <a target="_blank" href="https://www.opencyclemap.org/">OpenCycleMap</a>',
+                                    ol.source.OSM.ATTRIBUTION
+                                ],
+                                url: 'https://{a-c}.tile.thunderforest.com/cycle/{z}/{x}/{y}.png' +
+                                    '?apikey=081ff7d83c0549c7a758fdd4df478f0f'
+                            })
+                        }),
+                        new ol.layer.Tile({
+                            title: 'CyclOSM',
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: [
+                                    '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> - <a target="_blank" href="https://www.cyclosm.org/">CyclOSM</a>',
+                                    ol.source.OSM.ATTRIBUTION
+                                ],
+                                url: 'https://dev.{a-c}.tile.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png'
+                            })
+                        }),
+                        new ol.layer.Group({
+                            title: 'Mapa Raster del IGN',
+                            type: 'base',
+                            combine: true,
+                            visible: false,
+                            layers: [
+                                new ol.layer.Tile({
+                                    source: new ol.source.TileWMS(({
+                                        preload: 4,
+                                        url: "http://www.ign.es/wms-inspire/mapa-raster",
+                                        attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Teselas cartográficas cedidas por © <a target="_blank" href="https://www.ign.es/web/ign/portal">Instituto Geográfico Nacional de España</a>',
+                                        params: {
+                                            "LAYERS": "Fondo",
+                                            "TILED": "true",
+                                            "VERSION": "1.3.0"
+                                        },
+                                    })),
+                                    opacity: 1.000000,
+                                }),
+                                new ol.layer.Tile({
+                                    source: new ol.source.TileWMS(({
+                                        preload: 4,
+                                        url: "http://www.ign.es/wms-inspire/mapa-raster",
+                                        attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Teselas cartográficas cedidas por © <a target="_blank" href="https://www.ign.es/web/ign/portal">Instituto Geográfico Nacional de España</a>',
+                                        params: {
+                                            "LAYERS": "mtn_rasterizado",
+                                            "TILED": "true",
+                                            "VERSION": "1.3.0"
+                                        },
+                                    })),
+                                    opacity: 1.000000,
+                                }),
+
+                            ]
+                        }),
+                        new ol.layer.Tile({
+                            title: "OpenStreetMap",
+                            opacity: 1.000000,
+                            type: 'base',
+                            visible: false,
+                            source: new ol.source.XYZ({
+                                attributions: [
+                                    '<a target="_blank" href="https://openlayers.org/">OpenLayers</a>',
+                                    ol.source.OSM.ATTRIBUTION,
+                                ],
+                                url: "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            }),
+                        }),
+                    ]
+                }),
+                new ol.layer.Group({
+                    title: 'Mapa Base',
+                    visible: true,
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.WMTS(({
+                                url: "http://www.ign.es/wmts/pnoa-ma",
+                                attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Teselas de PNOA cedidas por © <a target="_blank" href="https://www.ign.es/web/ign/portal">Instituto Geográfico Nacional de España</a>',
+                                "layer": "OI.OrthoimageCoverage",
+                                "TILED": "true",
+                                matrixSet: 'EPSG:4326',
+                                format: 'image/jpeg',
+                                projection: projection_PNOA,
+                                tileGrid: new ol.tilegrid.WMTS({
+                                    origin: ol.extent.getTopLeft(projectionExtent_PNOA),
+                                    resolutions: resolutions_PNOA,
+                                    matrixIds: matrixIds_PNOA
+                                }),
+                                style: 'default',
+                                wrapX: true,
+                                "VERSION": "1.0.0",
+                            })),
+                            title: "Satélite PNOA limpio",
+                            type: 'base',
+                            visible: true,
+                            opacity: 1.0,
+                        }),
+                        new ol.layer.Group({
+                            title: 'Satelite y callejero',
+                            type: 'base',
+                            combine: true,
+                            visible: true,
+                            layers: [
+                                new ol.layer.Tile({
+                                    source: new ol.source.WMTS(({
+                                        url: "http://www.ign.es/wmts/pnoa-ma",
+                                        attributions: '<a target="_blank" href="https://openlayers.org/">OpenLayers</a> Teselas de PNOA cedidas por © <a target="_blank" href="https://www.ign.es/web/ign/portal">Instituto Geográfico Nacional de España</a>',
+                                        "layer": "OI.OrthoimageCoverage",
+                                        matrixSet: 'EPSG:4326',
+                                        format: 'image/jpeg',
+                                        projection: projection_PNOA,
+                                        tileGrid: new ol.tilegrid.WMTS({
+                                            origin: ol.extent.getTopLeft(projectionExtent_PNOA),
+                                            resolutions: resolutions_PNOA,
+                                            matrixIds: matrixIds_PNOA
+                                        }),
+                                        style: 'default',
+                                        wrapX: true,
+                                        "VERSION": "1.0.0",
+                                    })),
+                                    opacity: 1.0,
+                                }),
+                                new ol.layer.Tile({
+                                    source: new ol.source.TileWMS(({
+                                        url: "http://www.ign.es/wms-inspire/ign-base",
+                                        attributions: ' - CC BY 4.0 <a href="http://www.scne.es/">SCNE</a>',
+                                        params: {
+                                            "LAYERS": "IGNBaseOrto",
+                                            "TILED": "true",
+                                            "VERSION": "1.3.0"
+                                        },
+                                    })),
+                                    opacity: 1.000000,
+                                })
+                            ]
+                        })
+                    ]
+                }),
+                clusterLayer
+            ],
+            target: 'map',
+            view: new ol.View({
+                center: ol.proj.fromLonLat([-3.8858333333333333, 39.7]),
+                zoom: 6.8,
+            })
+        });
+
+            // Agregar la interacción Drag an drop al mapa
+    map.addInteraction(dragAndDropInteraction);
+
+    // Construcción y funciones de Drag and drop
+dragAndDropInteraction.on('addfeatures', function (event) {
+  const vectorSource = new VectorSource({
+    features: event.features,
+  });
+  map.addLayer(
+    new VectorImageLayer({
+      source: vectorSource,
+      style: styleFunction
+    }),
+  );
+  map.getView().fit(vectorSource.getExtent());
+});
+
+const displayFeatureInfo = function (pixel) {
+  const features = [];
+  map.forEachFeatureAtPixel(pixel, function (feature) {
+    features.push(feature);
+  });
+  if (features.length > 0) {
+    const info = [];
+    let i, ii;
+    for (i = 0, ii = features.length; i < ii; ++i) {
+      info.push(features[i].get('name'));
+    }
+    document.getElementById('info').innerHTML = info.join(', ') || '&nbsp';
+  } else {
+    document.getElementById('info').innerHTML = '&nbsp;';
+  }
+};
+
+map.on('pointermove', function (evt) {
+  if (evt.dragging) {
+    return;
+  }
+  displayFeatureInfo(evt.pixel);
+});
+
+map.on('click', function (evt) {
+  displayFeatureInfo(evt.pixel);
+});
+
+        // carga el control de geolocalización
+        map.addControl(new PosicionActual());
+
+        // Estilo de la geolocalización
+        const posicionFeature = new ol.Feature();
+        posicionFeature.setStyle(
+            new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 5,
+                    fill: new ol.style.Fill({
+                        color: '#fff',
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#ff0000',
+                        width: 2
+                    })
+                })
+            })
+        );
+        // Costrucción de la Geolocalización
+        const exactitudFeature = new ol.Feature();
+
+        const vectorLayerPosicion = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [posicionFeature, exactitudFeature]
+            })
+        });
+        map.addLayer(vectorLayerPosicion);
+
+        const geolocation = new ol.Geolocation({
+            projection: map.getView().getProjection()
+        });
+
+        geolocation.on('change', function (evt) {
+            console.log(geolocation.getPosition());
+            zoomFeature();
+            geolocation.setTracking(false);
+        });
+
+        geolocation.on('error', function (evt) {
+            console.log(evt.message);
+        });
+
+        geolocation.on('change:accuracyGeometry', function () {
+            exactitudFeature.setGeometry(geolocation.getAccuracyGeometry());
+        });
+
+        geolocation.on('change:position', function () {
+            var coordenadas = geolocation.getPosition();
+            posicionFeature.setGeometry(new ol.geom.Point(coordenadas));
+            map.getView().setCenter(coordenadas);
+            map.setView(new ol.View({
+                center: geolocation.getPosition(),
+                zoom: 13
+            }));
+        });
+
+        // Configuración del popup
+        var container = document.getElementById("popup"),
+            content_element = document.getElementById("popup-content"),
+            closer = document.getElementById("popup-closer");
+
+        closer.onclick = function () {
+            overlay.setPosition(undefined);
+            closer.blur();
+            return false;
+        };
+        var overlay = new ol.Overlay({
+            element: container,
+            autoPan: true,
+            offset: [0, -10],
+        });
+
+        // construcción del Geocoder 
+        map.addOverlay(overlay);
+        var geocoder = new Geocoder('nominatim', {
+            provider: 'osm',
+            lang: 'en',
+            placeholder: 'Search for ...',
+            limit: 5,
+            debug: false,
+            autoComplete: true,
+            keepOpen: true
+        });
+
+        map.addControl(geocoder);
+
+        geocoder.on('addresschosen', function (evt) {
+            console.info(evt);
+            window.setTimeout(function () {
+                popup.show(evt.coordinate, evt.address.formatted);
+            }, 3000);
+        });
+
+        map.on("click", function (evt) {
+            var feature = map.forEachFeatureAtPixel(
+                evt.pixel,
+                function (feature, layer) {
+                    var features = feature.get('features');
+                    if (features) {
+                        return features[0];
+                    }
+                    return feature;
+                }
+            );
+            if (feature) {
+                var geometry = feature.getGeometry();
+                var coord = geometry.getCoordinates();
+                var content = feature.get("name");
+                content_element.innerHTML = content;
+                overlay.setPosition(coord);
+                console.info(feature.getProperties());
+            }
+        });
+
+        // Función para mostrar las coordenadas al mover el ratón
+        map.on('pointermove', (e) => {
+            const pixel = map.getEventPixel(e.originalEvent);
+            const hit = map.hasFeatureAtPixel(pixel);
+            document.getElementById('map').style.cursor = hit ? 'pointer' : '';
+        });
+
+
+        // Se añade los controles que faltan
+        var fullscreen = new ol.control.FullScreen();
+        map.addControl(fullscreen);
+
+        var scaleLine = new ol.control.ScaleLine({ units: 'metric' });
+        map.addControl(scaleLine);
+
+        var zoomslider = new ol.control.ZoomSlider();
+        map.addControl(zoomslider);
+
+        var mouse_position = new ol.control.MousePosition({
+            coordinateFormat: ol.coordinate.createStringXY(4),
+            projection: 'EPSG:4326'
+        });
+        map.addControl(mouse_position);
+
+        var layerSwitcher = new ol.control.LayerSwitcher({
+        });
+        map.addControl(layerSwitcher);
+    </script>
+</body>
+
+</html>
