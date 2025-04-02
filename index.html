@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
 <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximumscale=1.0 , shrink-to-fit=no, user-scalable=no" />
@@ -29,6 +29,19 @@
     <script src="https://cdn.jsdelivr.net/npm/ol-geocoder/dist/ol-geocoder.js"></script>
 
     <style>
+        :root {
+            --primary-color: #000000;
+            --secondary-color: rgba(255, 255, 255, 0.5);
+            --border-color: rgba(173, 217, 239, 0.7);
+            --popup-bg-color: white;
+            --popup-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            --popup-border-color: #ccc;
+            --tooltip-top: 3px;
+            --zoomslider-bg: transparent;
+            --mouse-position-font-size: 12px;
+            --geocoder-btn-size: 25px;
+        }
+
         html,
         body,
         #map {
@@ -42,34 +55,39 @@
         }
 
         .ol-rotate {
-            top: 10em;
+            top: 2em;
         }
 
-        #map .ol-zoom .ol-zoom-out {
+        .layer-switcher {
+            position: absolute;
+            top: 4em;
+            right: 0.5em;
+            text-align: left;
+        }
+
+        .layer-switcher .panel {
+            border: 4px solid #33607F;
+            border-radius: 10px;
+            width: auto;
+            font-size: small;
+        }
+
+        #map .ol-zoom .ol-zoom-out,
+        #map .ol-touch .ol-zoom .ol-zoom-out {
             margin-top: 204px;
         }
 
-        #map .ol-zoomslider {
-            background-color: transparent;
+        #map .ol-zoomslider,
+        #map .ol-touch .ol-zoomslider {
+            background-color: var(--zoomslider-bg);
             top: 2.3em;
         }
 
-        #map .ol-touch .ol-zoom .ol-zoom-out {
-            margin-top: 212px;
-        }
-
-        #map .ol-touch .ol-zoomslider {
-            top: 2.75em;
-        }
-
         #map .ol-zoom-in.ol-has-tooltip:hover [role=tooltip],
-        #map .ol-zoom-in.ol-has-tooltip:focus [role=tooltip] {
-            top: 3px;
-        }
-
+        #map .ol-zoom-in.ol-has-tooltip:focus [role=tooltip],
         #map .ol-zoom-out.ol-has-tooltip:hover [role=tooltip],
         #map .ol-zoom-out.ol-has-tooltip:focus [role=tooltip] {
-            top: 232px;
+            top: var(--tooltip-top);
         }
 
         .ol-scale-line {
@@ -81,31 +99,25 @@
             position: absolute;
             top: 0.5em;
             margin-right: 3em;
-            color: #000000;
-            background-color: rgba(255, 255, 255, 0.5);
-            top: 0.5em;
-            margin-right: 3em;
-            border: solid 3px rgba(173, 217, 239, 0.7);
-            font-size: 12px;
+            color: var(--primary-color);
+            background-color: var(--secondary-color);
+            border: solid 3px var(--border-color);
+            font-size: var(--mouse-position-font-size);
         }
 
         .ol-geocoder.gcd-gl-container {
             top: 270px;
         }
 
-        .ol-geocoder .gcd-gl-control {
-            height: 25px;
-            width: 25px
+        .ol-geocoder .gcd-gl-control,
+        .ol-geocoder .gcd-gl-btn {
+            height: var(--geocoder-btn-size);
+            width: var(--geocoder-btn-size);
         }
 
         .ol-geocoder .gcd-gl-expanded {
             height: 2em;
-            width: 15.625em
-        }
-
-        .ol-geocoder .gcd-gl-btn {
-            height: 25px;
-            width: 25px
+            width: 15.625em;
         }
 
         .posicion-actual {
@@ -115,18 +127,17 @@
 
         .ol-touch .posicion-actual {
             top: 320px;
-            left: .5em;
         }
 
         .ol-popup {
             position: absolute;
             min-width: 180px;
-            background-color: white;
-            -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
-            filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
+            background-color: var(--popup-bg-color);
+            -webkit-filter: drop-shadow(var(--popup-shadow));
+            filter: drop-shadow(var(--popup-shadow));
             padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
+            border: 3px solid #5a7ba6;
+            border-radius: 10px 10px 10px 10px;
             bottom: 12px;
             left: -50px;
         }
@@ -143,14 +154,14 @@
         }
 
         .ol-popup:after {
-            border-top-color: white;
+            border-top-color: var(--popup-bg-color);
             border-width: 10px;
             left: 48px;
             margin-left: -10px;
         }
 
         .ol-popup:before {
-            border-top-color: #cccccc;
+            border-top-color: var(--popup-border-color);
             border-width: 11px;
             left: 48px;
             margin-left: -11px;
@@ -179,54 +190,51 @@
     <script>
         // Estilo del vector drag and drop
         var defaultStyle = {
-        'Point': new ol.style.Style({
-          image: new ol.style.Icon ({src: 'http://mapamtbmadrid.x10host.com/MapaRutasMTB/Iconos/Red_flag_OK_24.png'})
-        }),
-        'MultiLineString': new ol.style.Style({
-          stroke: new ol.style.Stroke({
-            color: '#FF8B01',
-            width: 3
-          })
-        }),
-      };
+            'Point': new ol.style.Style({
+                image: new ol.style.Icon({ src: 'https://raw.githubusercontent.com/nanoflojo/MaparutasMTB/master//Red_flag_OK_24.png' })
+            }),
+            'MultiLineString': new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: '#FF8B01',
+                    width: 3
+                })
+            }),
+        };
 
-      var styleFunction = function(feature, resolution) {
-        var featureStyleFunction = feature.getStyleFunction();
-        if (featureStyleFunction) {
-          return featureStyleFunction.call(feature, resolution);
-        } else {
-          return defaultStyle[feature.getGeometry().getType()];
-        }
-      };
+        var styleFunction = function (feature, resolution) {
+            var featureStyleFunction = feature.getStyleFunction();
+            if (featureStyleFunction) {
+                return featureStyleFunction.call(feature, resolution);
+            } else {
+                return defaultStyle[feature.getGeometry().getType()];
+            }
+        };
 
 
-    // Importar las clases necesarias para Drag and Drop
-    const VectorSource = ol.source.Vector;
-    const VectorImageLayer = ol.layer.VectorImage;
+        // Importar las clases necesarias para Drag and Drop
+        const VectorSource = ol.source.Vector;
+        const VectorImageLayer = ol.layer.VectorImage;
 
-    const dragAndDropInteraction = new ol.interaction.DragAndDrop({
-      sourceProjections: ['EPSG:4326', 'EPSG:3857'],
-      formatConstructors: [
-        ol.format.GeoJSON,
-        ol.format.GML3,
-        ol.format.KML, 
-        ol.format.WFS,
-        ol.format.WKT,
-        ol.format.GPX,
-        ol.format.OSMXML,
-      ],
-    });
+        const dragAndDropInteraction = new ol.interaction.DragAndDrop({
+            sourceProjections: ['EPSG:4326', 'EPSG:3857'],
+            formatConstructors: [
+                ol.format.GeoJSON,
+                ol.format.GML3,
+                ol.format.KML,
+                ol.format.WFS,
+                ol.format.WKT,
+                ol.format.GPX,
+                ol.format.OSMXML,
+            ],
+        });
 
         //Visualización PNOA wms
-        var projection_PNOA = ol.proj.get('EPSG:4326');
-        var projectionExtent_PNOA = projection_PNOA.getExtent();
-        var size_PNOA = ol.extent.getWidth(projectionExtent_PNOA) / 512;
-        var resolutions_PNOA = new Array(18);
-        var matrixIds_PNOA = new Array(18);
-        for (var z = 0; z < 18; ++z) {
-            resolutions_PNOA[z] = size_PNOA / Math.pow(2, z);
-            matrixIds_PNOA[z] = "EPSG:4326:" + z;
-        }
+        const projection_PNOA = ol.proj.get('EPSG:4326');
+        const projectionExtent_PNOA = projection_PNOA.getExtent();
+        const size_PNOA = ol.extent.getWidth(projectionExtent_PNOA) / 512;
+
+        const resolutions_PNOA = Array.from({ length: 18 }, (_, z) => size_PNOA / Math.pow(2, z));
+        const matrixIds_PNOA = Array.from({ length: 18 }, (_, z) => `EPSG:4326:${z}`);
 
         // Creamos el estilo del cluster agrupación fuentes
         var styleCache = {};
@@ -544,50 +552,78 @@
             })
         });
 
-            // Agregar la interacción Drag an drop al mapa
-    map.addInteraction(dragAndDropInteraction);
+        // Agregar la interacción Drag an drop al mapa
+        map.addInteraction(dragAndDropInteraction);
 
-    // Construcción y funciones de Drag and drop
-dragAndDropInteraction.on('addfeatures', function (event) {
-  const vectorSource = new VectorSource({
-    features: event.features,
-  });
-  map.addLayer(
-    new VectorImageLayer({
-      source: vectorSource,
-      style: styleFunction
-    }),
-  );
-  map.getView().fit(vectorSource.getExtent());
-});
+        // Construcción y funciones de Drag and drop
+        dragAndDropInteraction.on('addfeatures', function (event) {
+            const vectorSource = new VectorSource({
+                features: event.features,
+            });
+            map.addLayer(
+                new VectorImageLayer({
+                    source: vectorSource,
+                    style: styleFunction
+                }),
+            );
+            map.getView().fit(vectorSource.getExtent());
+        });
 
-const displayFeatureInfo = function (pixel) {
-  const features = [];
-  map.forEachFeatureAtPixel(pixel, function (feature) {
-    features.push(feature);
-  });
-  if (features.length > 0) {
-    const info = [];
-    let i, ii;
-    for (i = 0, ii = features.length; i < ii; ++i) {
-      info.push(features[i].get('name'));
-    }
-    document.getElementById('info').innerHTML = info.join(', ') || '&nbsp';
-  } else {
-    document.getElementById('info').innerHTML = '&nbsp;';
-  }
-};
+        // Consolidar la lógica de mostrar información de características en un único listener
+        const displayFeatureInfo = (pixel) => {
+            const features = [];
+            map.forEachFeatureAtPixel(pixel, (feature) => {
+                features.push(feature);
+            });
 
-map.on('pointermove', function (evt) {
-  if (evt.dragging) {
-    return;
-  }
-  displayFeatureInfo(evt.pixel);
-});
+            const info = features.map((feature) => feature.get('name')).filter(Boolean).join(', ');
+            document.getElementById('info').innerHTML = info || '&nbsp;';
+        };
 
-map.on('click', function (evt) {
-  displayFeatureInfo(evt.pixel);
-});
+        map.on('pointermove', (evt) => {
+            if (evt.dragging) return;
+            displayFeatureInfo(evt.pixel);
+            const hit = map.hasFeatureAtPixel(evt.pixel);
+            document.getElementById('map').style.cursor = hit ? 'pointer' : '';
+        });
+
+        map.on('click', (evt) => {
+            const feature = map.forEachFeatureAtPixel(evt.pixel, (feature, layer) => {
+                const features = feature.get('features');
+                return features ? features[0] : feature;
+            });
+
+            if (feature) {
+                const geometry = feature.getGeometry();
+                const coord = geometry.getCoordinates();
+                const content = feature.get("name");
+                document.getElementById("popup-content").innerHTML = content;
+                overlay.setPosition(coord);
+                console.info(feature.getProperties());
+            }
+        });
+        // Elemento para mostrar mensajes de error o feedback
+        const feedbackElement = document.createElement('div');
+        feedbackElement.id = 'geolocation-feedback';
+        feedbackElement.style.position = 'absolute';
+        feedbackElement.style.bottom = '10px';
+        feedbackElement.style.left = '10px';
+        feedbackElement.style.padding = '10px';
+        feedbackElement.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        feedbackElement.style.border = '1px solid #ccc';
+        feedbackElement.style.borderRadius = '5px';
+        feedbackElement.style.fontSize = '14px';
+        feedbackElement.style.display = 'none';
+        document.body.appendChild(feedbackElement);
+
+        const showFeedback = (message, isError = false) => {
+            feedbackElement.style.color = isError ? 'red' : 'green';
+            feedbackElement.innerHTML = message;
+            feedbackElement.style.display = 'block';
+            setTimeout(() => {
+                feedbackElement.style.display = 'none';
+            }, 5000);
+        };
 
         // carga el control de geolocalización
         map.addControl(new PosicionActual());
@@ -618,18 +654,21 @@ map.on('click', function (evt) {
         });
         map.addLayer(vectorLayerPosicion);
 
+        // Configuración de la geolocalización
         const geolocation = new ol.Geolocation({
             projection: map.getView().getProjection()
         });
 
-        geolocation.on('change', function (evt) {
+        geolocation.on('change', function () {
             console.log(geolocation.getPosition());
+            showFeedback('Geolocalización exitosa. Centrándose en su ubicación.');
             zoomFeature();
             geolocation.setTracking(false);
         });
 
         geolocation.on('error', function (evt) {
-            console.log(evt.message);
+            console.error(evt.message);
+            showFeedback(`Error en la geolocalización: ${evt.message}`, true);
         });
 
         geolocation.on('change:accuracyGeometry', function () {
@@ -637,11 +676,11 @@ map.on('click', function (evt) {
         });
 
         geolocation.on('change:position', function () {
-            var coordenadas = geolocation.getPosition();
+            const coordenadas = geolocation.getPosition();
             posicionFeature.setGeometry(new ol.geom.Point(coordenadas));
             map.getView().setCenter(coordenadas);
             map.setView(new ol.View({
-                center: geolocation.getPosition(),
+                center: coordenadas,
                 zoom: 13
             }));
         });
