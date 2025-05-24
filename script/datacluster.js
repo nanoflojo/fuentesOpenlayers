@@ -33,7 +33,7 @@
 
         // Configuramos un vector para leer los datos Geojson	
         var fuentes = new ol.source.Vector({
-            url: "https://gist.githubusercontent.com/nanoflojo/e5b3991240d9e18c6d04b31fc9c3aad9/raw/9ceba2f19204a45e4fa49400af6830d34d39f305/FuentesTODO.json",
+            url: "https://gist.githubusercontent.com/nanoflojo/215117e106f2d9809aa73701850056bb/raw/7eb9aa9470f4d024df6040578142c621648a754d/FuentesTODO.json",
             format: new ol.format.GeoJSON(),
             style: (styleCache /*style_point*/)
         });
